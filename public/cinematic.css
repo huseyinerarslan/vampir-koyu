@@ -23,3 +23,41 @@ body[data-phase=night] .moon{opacity:.85}body[data-phase=morning] .landscape,bod
 @media(max-width:700px){.moon{left:auto;right:-65px;top:100px;width:240px;height:240px;opacity:.45}.hero{padding-bottom:34px}.hero h1{font-size:78px}.hero:before{display:none}.entry{background:linear-gradient(135deg,#30202aee,#17121cf7)}.game-top{margin-bottom:20px;align-items:flex-start}.game-top .eyebrow{font-size:8px;letter-spacing:1.5px}.phase-track{margin-bottom:20px;gap:6px}.phase-step{font-size:10px;min-width:76px}.sigil{width:94px;height:94px;font-size:50px}.game-tools{flex-direction:column;gap:5px}.game-tools button{font-size:8px;padding:4px 7px}.stage.transition-in{animation-duration:.4s}.game-grid{gap:18px}.roster{order:1}.game-top .code{font-size:17px}.timer{position:sticky;bottom:12px;padding:8px 16px;border-radius:30px;background:#1d1522e8;border:1px solid #90526044;max-width:230px;margin:22px auto 0}.timer:empty{display:none}.targets{gap:8px}.targets button{padding:12px;font-size:14px}.hero .eyebrow{max-width:220px}header{gap:12px}.brand{white-space:nowrap}}
 body.effects-off .landscape *{animation:none!important}body.effects-off .transition-in,body.effects-off .private{animation:none!important}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}.fog{will-change:auto}}
+
+/* Identical reveal geometry, color and timing for every role. */
+body.role-reading{overflow:hidden}
+.role-dialog{position:fixed;inset:0;margin:auto;width:min(420px,calc(100vw - 32px));max-height:calc(100dvh - 32px);padding:0;overflow-y:auto;border:1px solid #b67d88;border-radius:18px;background:#20131f;color:#f1ded6;box-shadow:0 0 0 6px #d39b9b0a,0 25px 100px #000b;animation:secret-arrive .65s cubic-bezier(.16,1,.3,1)}
+.role-dialog::backdrop{background:#07070df2;backdrop-filter:blur(12px)}
+.role-chamber{padding:30px;text-align:center;background:radial-gradient(ellipse at 50% 22%,#8c3c5140,transparent 68%),linear-gradient(150deg,#34202b,#1b121d);position:relative}
+.role-chamber:before{content:'';position:absolute;inset:10px;border:1px solid #af798030;border-radius:10px;pointer-events:none}
+.role-chamber .eyebrow{font-size:9px;margin:0 0 24px;letter-spacing:2.5px}
+.neutral-seal{width:104px;height:104px;border:1px solid #c58b8d66;outline:1px solid #c58b8d22;outline-offset:8px;display:grid;place-items:center;border-radius:50%;margin:10px auto 28px;font:65px Georgia;color:#dc9b9d;background:radial-gradient(circle,#a44c6130,transparent 70%);box-shadow:0 0 45px #b34c5c20;animation:seal-unlock .8s ease-out}
+.role-caption{font-size:9px;letter-spacing:3px;color:#cba8af;margin:0 0 12px}
+.role-secret{height:176px;animation:secret-ink .8s ease both}
+.role-secret h2{font:46px/1.15 Georgia,serif;margin:0 0 18px;color:#f1ddd4}
+.role-secret p{font-size:14px;line-height:1.8;margin:0;color:#cdb8c2}
+.role-privacy{font-size:11px;line-height:1.7;color:#aa909e;margin:8px 0 0}
+.role-dialog .primary{position:relative;margin-top:20px}
+@keyframes secret-arrive{from{opacity:0;transform:perspective(800px) rotateY(-18deg) translateY(24px) scale(.94)}to{opacity:1;transform:perspective(800px) rotateY(0) translateY(0) scale(1)}}
+@keyframes seal-unlock{from{transform:rotate(-65deg) scale(.85);opacity:.3}to{transform:rotate(0) scale(1);opacity:1}}
+@keyframes secret-ink{0%,45%{opacity:0;transform:translateY(8px)}100%{opacity:1;transform:translateY(0)}}
+body.effects-off .role-dialog,body.effects-off .role-dialog *{animation:none!important}
+@media(max-height:650px){.role-chamber{padding:20px 26px}.role-chamber .eyebrow{margin-bottom:18px}.neutral-seal{width:70px;height:70px;font-size:45px;margin:8px auto 20px}.role-secret{height:150px}.role-secret h2{font-size:38px;margin-bottom:12px}.role-secret p{font-size:13px}.role-dialog .primary{margin-top:12px}.role-privacy{font-size:10px}}
+@media(prefers-reduced-motion:reduce){.role-dialog,.role-dialog *{animation:none!important}}
+
+/* Secret text appears only during an active hold; no delayed fade on release. */
+.role-secret{animation:none}
+.role-secret h2{font:26px/1.25 Georgia,serif;margin-bottom:16px}
+.role-secret p{font-size:13px;line-height:1.8}
+.role-dialog:not(.is-reading) .role-secret h2{font-size:23px;color:#c2a5af}
+#hold-role{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+#hold-role[aria-pressed=true]{background:linear-gradient(110deg,#b83d51,#782438);box-shadow:inset 0 0 0 1px #e5a3ac66}
+.role-dialog #close-role{position:relative;display:block;width:100%;margin-top:8px;min-height:40px}
+@media(max-height:650px){.role-secret h2{font-size:24px}.role-secret p{font-size:12px}.role-dialog #close-role{min-height:32px;margin-top:4px;padding:5px}}
+
+.night-story{margin:24px 0 30px;border:1px solid #ba8c8055;border-radius:12px;text-align:left;padding:23px;background:radial-gradient(ellipse at 0 0,#a7705520,transparent 80%),#17131cee;box-shadow:inset 0 1px #e4bb9c12}
+.story-heading{display:flex;align-items:center;gap:10px;color:#d8b292}.story-heading>span{font:30px Georgia}.story-heading .eyebrow{font-size:8px;letter-spacing:2px;margin:0;color:#c2a18c}
+.night-story h3,.story-journal h3{font:27px/1.2 Georgia;margin:12px 0;color:#ead8c8}.night-story>p{font-size:14px;color:#bdaeb6;line-height:1.8}.story-options{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:20px}.story-options button{display:flex;justify-content:space-between;gap:12px;text-align:left;font-size:12px;min-height:50px;background:#2d2329;border-color:#80605666;overflow-wrap:anywhere}.story-options button:hover{background:#4b3037;border-color:#ba8a7c}.story-options button span{color:#c09c8e}
+.night-story .story-note{font-size:10px;line-height:1.7;color:#a28d93;margin:18px 0 0;border-top:1px solid #a1706c22;padding-top:12px}.story-result{border-left:2px solid #b98d75;padding:5px 0 5px 16px;margin:20px 0;color:#deccc7;font-size:14px}.story-choice{font-size:11px;color:#bb998c;margin:4px 0}.story-result small{color:#a18b95;font-size:10px}.story-journal{grid-column:1/-1;padding:20px 24px;border:1px solid #73505b77;background:#1b141d;border-radius:10px;margin-top:0}.story-journal summary{font-size:14px;color:#dcc0ad}.story-journal article{border-top:1px solid #73505b44;padding:16px 0}.story-journal article:last-child{padding-bottom:0}.story-journal article>small{font-size:9px;letter-spacing:2px;color:#a98d97}.story-journal article>p{font-size:13px;color:#bda7b2}.story-journal h3{font-size:23px}
+@media(max-width:700px){.night-story{padding:18px 16px;margin:20px 0}.night-story h3{font-size:25px}.story-options{gap:7px}.story-options button{font-size:12px;padding:12px 10px;min-height:54px}.story-journal{margin-top:22px;padding:18px}}
+.stage .target-caption{font-size:11px;letter-spacing:1px;text-align:left;color:#dbb1b1;border-top:1px solid #9e65733d;padding-top:18px;margin-bottom:-10px}

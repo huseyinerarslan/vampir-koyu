@@ -22,13 +22,17 @@ Sunucu otoriter HTTP + Server-Sent Events kullanır. İstemciye yalnızca kendi 
 
 V1 tek sunucu sürecinde bellekte çalışır. Sunucu yeniden başlatılırsa odalar kaybolur. Çoklu sunucu ölçeklemesi desteklenmez. Odalar 24 saat işlem görmeyince temizlenir. Bağlantısı kopan oyuncu hayatta kalır; süre dolunca seçimsiz devam edilir. Oda sahibi devri yoktur; fakat oyun aşamaları otomatik ilerler. Sohbet/sesli görüşme dahil değildir: aynı masada veya ayrı bir sesli aramada konuşun. Rekabetçi ölçekte kötüye kullanım koruması ve kalıcı depolama ileriki sürüm işidir.
 
-## Doğrulama
-
 ## Sinematik arayüz güncellemesi
 
-Kırmızı ay, yıldızlar, sis ve hafif köz animasyonları; gündüz/gece atmosferi, aşama şeridi ve son 10 saniye uyarısı eklendi. Efektler başlıktaki düğmeyle kapatılabilir. Azaltılmış hareket tercihi otomatik uygulanır. Rol kartı 8 saniye sonra, aşama değişince veya sayfa arka plana alınınca gizlenir. Lobi davet bağlantısı `?oda=KOD` biçimindedir; katılma formunu otomatik doldurur. Oyuncunun mevcut oturumu varsa önce mevcut odasını gösterir.
+Kırmızı ay, yıldızlar, sis ve hafif köz animasyonları; gündüz/gece atmosferi, aşama şeridi ve son 10 saniye uyarısı eklendi. Efektler başlıktaki düğmeyle kapatılabilir. Azaltılmış hareket tercihi otomatik uygulanır. Ortak tasarımlı merkezî rol kartı başlangıçta mühürlüdür. Yalnızca düğmeye basılı tutulurken rol metni eklenir; bırakma, dokunma iptali, odak kaybı, aşama değişimi ve arka plana alma durumlarında kaldırılır. Kesintisiz basılı tutmada 8 saniye güvenlik sınırı vardır. Klavyede Boşluk veya Enter kullanılabilir. Lobi davet bağlantısı `?oda=KOD` biçimindedir; katılma formunu otomatik doldurur. Oyuncunun mevcut oturumu varsa önce mevcut odasını gösterir.
 
-`node --test` — rol gizliliği, host yetkisi, tüm oyuncu sayıları, koruma/araştırma, gizli oylama, beraberlik, kazanma, döngü, HTTP oturumu ve SSE testleri.
+## Köyün fısıltıları
+
+32 olay, olay başına 4 seçenek ve toplam 128 yazılmış sonuç. Her oyuncunun rolünden bağımsız karıştırılmış özel destesi vardır. İlk 32 gecede olay tekrarlanmaz. Deste bitince yeniden karıştırılır ve son altı tamamlanmış olay destenin sonuna alınır. Her gece bir isteğe bağlı seçim yapılabilir; seçim geri alınmaz. Olay ve günlüğü yalnızca sahibi görür; son altı tamamlanmış anı ekranda tutulur. Hikâyeler başka oyuncuların eylemlerinden veya rollerinden türetilmez; kanıt, güç, puan ya da koruma vermez. Ana gece seçimi ayrıca yapılır. Herkes ana seçimini bitirirse veya süre dolarsa hikâye etkinliği de kapanır. Yenileme sırasında seçimler korunur; sunucu yeniden başlatılınca odalarla birlikte silinir.
+
+## Doğrulama
+
+`node --test` — rol gizliliği, host yetkisi, tüm oyuncu sayıları, koruma/araştırma, gizli oylama, beraberlik, kazanma, döngü, HTTP oturumu, SSE, hikâye gizliliği, tekrar önleme ve oyun kurallarından bağımsızlık testleri.
 
 ## Render
 
