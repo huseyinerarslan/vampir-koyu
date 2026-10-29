@@ -24,6 +24,10 @@ V1 tek sunucu sürecinde bellekte çalışır. Sunucu yeniden başlatılırsa od
 
 ## Doğrulama
 
+## Sinematik arayüz güncellemesi
+
+Kırmızı ay, yıldızlar, sis ve hafif köz animasyonları; gündüz/gece atmosferi, aşama şeridi ve son 10 saniye uyarısı eklendi. Efektler başlıktaki düğmeyle kapatılabilir. Azaltılmış hareket tercihi otomatik uygulanır. Rol kartı 8 saniye sonra, aşama değişince veya sayfa arka plana alınınca gizlenir. Lobi davet bağlantısı `?oda=KOD` biçimindedir; katılma formunu otomatik doldurur. Oyuncunun mevcut oturumu varsa önce mevcut odasını gösterir.
+
 `node --test` — rol gizliliği, host yetkisi, tüm oyuncu sayıları, koruma/araştırma, gizli oylama, beraberlik, kazanma, döngü, HTTP oturumu ve SSE testleri.
 
 ## Render
