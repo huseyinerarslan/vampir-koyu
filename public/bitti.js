@@ -9,7 +9,7 @@ const state = {
   categoriesClassic:['İSİM','ŞEHİR','HAYVAN','YEMEK','MARKA','EŞYA'],
   categoriesFriends:['GRUPTA KİM?','EN ÇOK BUNU KİM YAPAR?','KİMİN SÖZÜ?','KİM EN GEÇ KALIR?','KİM DAHA ÇOK YER?','KİM DAHA ÇOK UYUR?'],
   letters:['A','B','C','D','E','F','G','H','K','M','P','R','S','T','Y'],
-  currentLetter:'K', jokerUsed:false, timer:null, timeLeft:60, answers:{}, reviewIndex:0
+  currentLetter:'K', jokerUsed:false, timer:null, timeLeft:60, answers:{}, reviewIndex:0, reviewItems:[]
 };
 
 function show(id){$$('.screen').forEach(s=>s.classList.remove('active'));$('#screen-'+id).classList.add('active');window.scrollTo({top:0,behavior:'smooth'})}
@@ -103,10 +103,71 @@ $('#bittiBtn').onclick=()=>{clearInterval(state.timer);sfx('bitti');impact();set
 
 function beginReview(){clearInterval(state.timer);setPanic(false);state.reviewIndex=0;const cats=currentCategories();state.reviewItems=cats.map(c=>({category:c,answer:state.answers[c]||randomDemoAnswer(c),owner:'Anonim cevap'}));$('#reviewTotal').textContent=state.reviewItems.length;renderReview();show('review')}
 function randomDemoAnswer(cat){const L=state.currentLetter;const demo={İSİM:{K:'Kerem',A:'Ahmet',B:'Bora'},ŞEHİR:{K:'Kars',A:'Adana',B:'Bursa'},HAYVAN:{K:'Kedi',A:'At',B:'Balina'},YEMEK:{K:'Kebap',A:'Aşure',B:'Börek'},MARKA:{K:'Koton',A:'Adidas',B:'Bosch'},EŞYA:{K:'Koltuk',A:'Ayna',B:'Bardak'}};return demo[cat]?.[L]||`${L}...`}
-function renderReview(){const item=state.reviewItems[state.reviewIndex];$('#reviewIndex').textContent=state.reviewIndex+1;$('#reviewCategory').textContent=item.category;$('#reviewAnswer').textContent=item.answer||'—';$('#reviewOwner').textContent=item.owner;$('#aiResult').textContent='';const card=$('#reviewCard');card.classList.remove('reveal');void card.offsetWidth;card.classList.add('reveal');sfx('reveal')}
+function renderReview(){
+  const item=state.reviewItems[state.reviewIndex];
+  $('#reviewIndex').textContent=state.reviewIndex+1;$('#reviewCategory').textContent=item.category;$('#reviewAnswer').textContent=item.answer||'—';$('#reviewOwner').textContent=item.owner;
+  $('#aiResult').textContent=state.mode==='classic'?'İtiraz yoksa cevap geçer. İtiraz gelirse oylama açılır; eşitlikte AI Hakem otomatik karar verir.':'Arkadaş Modunda son söz oyuncuların.';
+  $('#voteYes').disabled=false;$('#voteNo').disabled=false;$('#voteYes').textContent='✓ DOĞRU';$('#voteNo').textContent='✕ İTİRAZ';
+  $('#aiJudgeBtn').disabled=true;$('#aiJudgeBtn').textContent=state.mode==='classic'?'✨ AI HAKEM • EŞİTLİKTE OTOMATİK':'✨ AI HAKEM • BU MODDA KAPALI';
+  const card=$('#reviewCard');card.classList.remove('reveal');void card.offsetWidth;card.classList.add('reveal');sfx('reveal')
+}
 function nextReview(valid=true){sfx(valid?'yes':'no');const pts=valid?10:0;state.players[0].score+=pts;state.reviewIndex++;if(state.reviewIndex>=state.reviewItems.length){simulateRoundScores();renderScore();show('score')}else renderReview()}
-$('#voteYes').onclick=()=>nextReview(true);$('#voteNo').onclick=()=>nextReview(false);
-$('#aiJudgeBtn').onclick=()=>{const answer=$('#reviewAnswer').textContent.trim();const starts=answer.toLocaleUpperCase('tr-TR').startsWith(state.currentLetter.toLocaleUpperCase('tr-TR'));$('#aiResult').textContent=starts?'✨ AI Hakem: Harf uyuyor. Büyük ihtimalle geçerli.':'✨ AI Hakem: Harfle uyuşmuyor; itiraz mantıklı.'};
+
+$('#voteYes').onclick=()=>nextReview(true);
+$('#voteNo').onclick=()=>startDispute();
+
+function demoVoteFor(item,index){
+  const text=(item.answer+item.category+state.currentLetter+index).split('').reduce((a,c)=>a+c.charCodeAt(0),0);
+  const starts=item.answer.toLocaleUpperCase('tr-TR').startsWith(state.currentLetter.toLocaleUpperCase('tr-TR'));
+  return starts ? (text%4!==0) : false;
+}
+async function startDispute(){
+  const item=state.reviewItems[state.reviewIndex];
+  $('#voteYes').disabled=true;$('#voteNo').disabled=true;sfx('no');
+  $('#aiResult').textContent='⚖️ İtiraz açıldı. Oylar toplanıyor…';
+  await new Promise(r=>setTimeout(r,650));
+  const votes=state.players.map((p,i)=>({name:p.name,valid:i===0?false:demoVoteFor(item,i)}));
+  const yes=votes.filter(v=>v.valid).length,no=votes.length-yes;
+  $('#aiResult').textContent=`⚖️ Oylama: ${yes} doğru • ${no} geçersiz`;
+  await new Promise(r=>setTimeout(r,700));
+  if(yes>no){$('#aiResult').textContent=`✓ Çoğunluk kabul etti (${yes}-${no}). AI kullanılmadı.`;setTimeout(()=>nextReview(true),850);return}
+  if(no>yes){$('#aiResult').textContent=`✕ Çoğunluk reddetti (${no}-${yes}). AI kullanılmadı.`;setTimeout(()=>nextReview(false),850);return}
+  if(state.mode!=='classic'){
+    $('#aiResult').textContent='🤝 Oylar eşit. Arkadaş Modunda kurucu son kararı verir.';
+    $('#voteYes').disabled=false;$('#voteNo').disabled=false;$('#voteYes').textContent='KURUCU: DOĞRU';$('#voteNo').textContent='KURUCU: GEÇERSİZ';
+    $('#voteYes').onclick=()=>nextReview(true);$('#voteNo').onclick=()=>nextReview(false);return;
+  }
+  $('#aiResult').textContent=`🤝 Oylar eşit (${yes}-${no}). AI Hakem sahaya giriyor…`;
+  await callAiJudge();
+}
+
+async function callAiJudge(){
+  const item=state.reviewItems[state.reviewIndex];
+  $('#aiJudgeBtn').textContent='✨ AI HAKEM DÜŞÜNÜYOR…';
+  try{
+    const r=await fetch('/api/judge',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:state.mode,letter:state.currentLetter,category:item.category,answer:item.answer})});
+    const data=await r.json();
+    if(!r.ok)throw new Error(data.error||'AI Hakem yanıt vermedi.');
+    if(data.unavailable){
+      $('#aiResult').textContent='⚠️ '+data.reason+' Şimdilik kurucu karar versin.';
+      $('#voteYes').disabled=false;$('#voteNo').disabled=false;$('#voteYes').textContent='KURUCU: DOĞRU';$('#voteNo').textContent='KURUCU: GEÇERSİZ';
+      $('#voteYes').onclick=()=>nextReview(true);$('#voteNo').onclick=()=>nextReview(false);return;
+    }
+    if(data.valid===null){
+      $('#aiResult').textContent='🤝 '+data.reason;
+      $('#voteYes').disabled=false;$('#voteNo').disabled=false;return;
+    }
+    const pct=Math.round((data.confidence||0)*100);
+    $('#aiResult').textContent=`${data.valid?'✨ AI Hakem: GEÇERLİ':'✨ AI Hakem: GEÇERSİZ'}${pct?` • %${pct}`:''} — ${data.reason}`;
+    sfx(data.valid?'yes':'no');
+    setTimeout(()=>nextReview(data.valid),1500);
+  }catch(e){
+    $('#aiResult').textContent='⚠️ AI Hakem şu an ulaşılamıyor. Kurucu son kararı versin.';
+    $('#voteYes').disabled=false;$('#voteNo').disabled=false;$('#voteYes').textContent='KURUCU: DOĞRU';$('#voteNo').textContent='KURUCU: GEÇERSİZ';
+    $('#voteYes').onclick=()=>nextReview(true);$('#voteNo').onclick=()=>nextReview(false);
+  }finally{$('#aiJudgeBtn').textContent='✨ AI HAKEM • EŞİTLİKTE OTOMATİK'}
+}
+
 function simulateRoundScores(){state.players.slice(1).forEach(p=>p.score+=Math.floor(Math.random()*4+2)*10)}
 function renderScore(){sfx('score');const sorted=[...state.players].sort((a,b)=>b.score-a.score);$('#scoreboard').innerHTML=sorted.map((p,i)=>`<div class="score-row"><div class="rank">#${i+1}</div><div><strong>${p.name}</strong><small>${i===0?'Turun lideri 🔥':'Oyunda'}</small></div><div class="points">${p.score}</div></div>`).join('');$('#nextRoundBtn').textContent=state.round>=state.rounds?'SONUCU GÖR':'SONRAKİ TUR'}
 $('#nextRoundBtn').onclick=()=>{if(state.round>=state.rounds){finishGame()}else{state.round++;startCountdown()}};
