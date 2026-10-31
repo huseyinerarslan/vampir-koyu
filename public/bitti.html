@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0f1020" />
+  <meta name="description" content="BİTTİ! — Arkadaşlarla hızlı kelime oyunu." />
+  <title>BİTTİ! — Arkadaşlarla Hızlı Kelime Oyunu</title>
+  <link rel="stylesheet" href="/bitti.css" />
+</head>
+<body>
+  <div class="noise"></div>
+  <main class="app-shell">
+    <header class="topbar">
+      <button class="brand" id="homeBtn" aria-label="Ana sayfa">
+        <span class="brand-mark">B!</span>
+        <span class="brand-word">BİTTİ!</span>
+      </button>
+      <div class="top-actions">
+        <span class="pill" id="modePill">KLASİK</span>
+        <button class="icon-btn" id="soundBtn" aria-label="Ses">🔊</button>
+      </div>
+    </header>
+
+    <section class="screen active" id="screen-home">
+      <div class="hero-card glass">
+        <div class="eyebrow">ARKADAŞLARLA • TELEFONDAN • AYNI ANDA</div>
+        <h1>Bir harf.<br><span>Bir dakika.</span><br>Bolca kavga.</h1>
+        <p>Klasik İsim–Hayvan–Bitki’yi hızlı turlar, jokerler ve itiraz sistemiyle yeniden oynayın.</p>
+        <div class="hero-actions">
+          <button class="btn btn-primary" id="createRoomBtn">ODA KUR</button>
+          <button class="btn btn-secondary" id="joinRoomBtn">ODAYA KATIL</button>
+        </div>
+      </div>
+
+      <div class="mode-grid">
+        <button class="mode-card active" data-mode="classic">
+          <div class="mode-icon">⚡</div>
+          <div>
+            <strong>Klasik Mod</strong>
+            <span>İsim, şehir, hayvan, yemek…</span>
+          </div>
+        </button>
+        <button class="mode-card" data-mode="friends">
+          <div class="mode-icon">😈</div>
+          <div>
+            <strong>Arkadaş Modu</strong>
+            <span>Grupta kim? En çok kim yapar?</span>
+          </div>
+        </button>
+      </div>
+
+      <div class="teaser glass">
+        <div class="teaser-badge">YENİ</div>
+        <div>
+          <strong>AI Hakem</strong>
+          <p>Şüpheli cevaplarda topluluk oylaması + akıllı hakem mantığı.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-create">
+      <div class="section-head">
+        <button class="back-btn" data-back="home">←</button>
+        <div>
+          <div class="eyebrow">ODA KUR</div>
+          <h2>Ekibi topla.</h2>
+        </div>
+      </div>
+      <div class="form-card glass">
+        <label>Adın
+          <input id="hostName" maxlength="16" placeholder="Örn. Hüseyin" value="Hüseyin" />
+        </label>
+        <label>Tur sayısı
+          <div class="segmented" id="roundSelector">
+            <button data-rounds="3">3</button>
+            <button class="active" data-rounds="5">5</button>
+            <button data-rounds="7">7</button>
+            <button data-rounds="10">10</button>
+          </div>
+        </label>
+        <label>Tur süresi
+          <div class="segmented" id="timeSelector">
+            <button data-time="45">45 sn</button>
+            <button class="active" data-time="60">60 sn</button>
+            <button data-time="90">90 sn</button>
+          </div>
+        </label>
+        <button class="btn btn-primary full" id="createConfirmBtn">ODAYI OLUŞTUR</button>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-join">
+      <div class="section-head">
+        <button class="back-btn" data-back="home">←</button>
+        <div>
+          <div class="eyebrow">ODAYA KATIL</div>
+          <h2>Kod sende mi?</h2>
+        </div>
+      </div>
+      <div class="form-card glass">
+        <label>Adın
+          <input id="joinName" maxlength="16" placeholder="Adını yaz" />
+        </label>
+        <label>Oda kodu
+          <input id="roomInput" maxlength="6" class="room-input" placeholder="B7K2Q" />
+        </label>
+        <button class="btn btn-primary full" id="joinConfirmBtn">KATIL</button>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-lobby">
+      <div class="section-head lobby-head">
+        <div>
+          <div class="eyebrow">ODA KODU</div>
+          <button class="room-code" id="roomCode">B7K2Q</button>
+          <small>Koda dokun, kopyala.</small>
+        </div>
+        <div class="round-mini"><span id="lobbyRounds">5</span> TUR</div>
+      </div>
+
+      <div class="glass lobby-card">
+        <div class="lobby-title-row">
+          <h3>Oyuncular</h3>
+          <span id="playerCount">4/8</span>
+        </div>
+        <div class="players" id="playersList"></div>
+      </div>
+
+      <div class="rules-strip">
+        <span>⏱ <b id="lobbyTime">60</b> sn</span>
+        <span>🃏 1 joker</span>
+        <span>⚖️ İtiraz açık</span>
+      </div>
+
+      <button class="btn btn-primary full pulse" id="startGameBtn">OYUNU BAŞLAT</button>
+      <button class="link-btn" id="addDemoPlayerBtn">+ Demo oyuncu ekle</button>
+    </section>
+
+    <section class="screen" id="screen-countdown">
+      <div class="countdown-wrap">
+        <div class="eyebrow">HAZIR OL</div>
+        <div class="letter-orb" id="letterOrb">K</div>
+        <div class="countdown-number" id="countdownNumber">3</div>
+        <p id="countdownText">Harf geliyor…</p>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-game">
+      <div class="game-top">
+        <div>
+          <div class="eyebrow">TUR <span id="roundNow">1</span>/<span id="roundTotal">5</span></div>
+          <div class="letter-chip">HARF <strong id="gameLetter">K</strong></div>
+        </div>
+        <div class="timer" id="timer">60</div>
+      </div>
+
+      <progress class="progress" id="timeBar" max="100" value="100" aria-label="Kalan süre"></progress>
+
+      <div class="answer-list" id="answerList"></div>
+
+      <div class="joker-row">
+        <button class="joker" id="jokerBtn">🃏 +10 SN</button>
+        <span id="filledCount">0/6 dolu</span>
+      </div>
+
+      <button class="btn btn-danger full mega" id="bittiBtn">BİTTİ!</button>
+    </section>
+
+    <section class="screen" id="screen-lock">
+      <div class="lock-wrap">
+        <div class="lock-icon">✋</div>
+        <div class="eyebrow">KALEMLER BIRAKILDI</div>
+        <h2><span id="stopperName">Hüseyin</span> “BİTTİ!” dedi.</h2>
+        <p>Herkese son <b>10 saniye</b>!</p>
+        <div class="big-timer" id="lockTimer">10</div>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-review">
+      <div class="section-head">
+        <div>
+          <div class="eyebrow">CEVAP KONTROLÜ</div>
+          <h2>Doğru mu, uydurma mı?</h2>
+        </div>
+        <div class="review-progress"><span id="reviewIndex">1</span>/<span id="reviewTotal">6</span></div>
+      </div>
+
+      <div class="review-card glass" id="reviewCard">
+        <div class="review-category" id="reviewCategory">ŞEHİR</div>
+        <div class="review-answer" id="reviewAnswer">Kars</div>
+        <div class="review-owner" id="reviewOwner">Anonim cevap</div>
+        <div class="vote-row">
+          <button class="vote yes" id="voteYes">✓ DOĞRU</button>
+          <button class="vote no" id="voteNo">✕ İTİRAZ</button>
+        </div>
+        <button class="ai-judge" id="aiJudgeBtn">✨ AI HAKEME SOR</button>
+        <div class="ai-result" id="aiResult"></div>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-score">
+      <div class="section-head">
+        <div>
+          <div class="eyebrow">TUR SONUCU</div>
+          <h2>Ortaya karışık kaos.</h2>
+        </div>
+      </div>
+      <div class="scoreboard glass" id="scoreboard"></div>
+      <button class="btn btn-primary full" id="nextRoundBtn">SONRAKİ TUR</button>
+    </section>
+
+    <section class="screen" id="screen-finish">
+      <div class="finish-wrap">
+        <div class="confetti">🎉</div>
+        <div class="eyebrow">OYUN BİTTİ</div>
+        <h1 id="winnerTitle">ŞAMPİYON!</h1>
+        <div class="winner-card glass" id="winnerCard"></div>
+        <div class="podium" id="podium"></div>
+        <button class="btn btn-primary full" id="playAgainBtn">RÖVANŞ</button>
+        <button class="link-btn" id="finishHomeBtn">Ana menüye dön</button>
+      </div>
+    </section>
+  </main>
+
+  <div class="impact-overlay" id="impactOverlay" aria-hidden="true">BİTTİ!</div>
+  <div class="toast" id="toast"></div>
+
+  <script src="/bitti.js" defer></script>
+</body>
+</html>
