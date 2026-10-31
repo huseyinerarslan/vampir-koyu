@@ -122,19 +122,19 @@
       <div class="glass lobby-card">
         <div class="lobby-title-row">
           <h3>Oyuncular</h3>
-          <span id="playerCount">4/8</span>
+          <span id="playerCount">0/8</span>
         </div>
         <div class="players" id="playersList"></div>
       </div>
 
       <div class="rules-strip">
         <span>⏱ <b id="lobbyTime">60</b> sn</span>
-        <span>🃏 1 joker</span>
         <span>⚖️ İtiraz açık</span>
+        <span>✨ Eşitlikte AI</span>
       </div>
 
       <button class="btn btn-primary full pulse" id="startGameBtn">OYUNU BAŞLAT</button>
-      <button class="link-btn" id="addDemoPlayerBtn">+ Demo oyuncu ekle</button>
+      <button class="link-btn" id="addDemoPlayerBtn">DAVET LİNKİNİ PAYLAŞ</button>
     </section>
 
     <section class="screen" id="screen-countdown">
@@ -226,6 +226,7 @@
   <div class="impact-overlay" id="impactOverlay" aria-hidden="true">BİTTİ!</div>
   <div class="toast" id="toast"></div>
 
+  <script src="/bitti-boot.js" defer></script>
   <script src="/bitti.js" defer></script>
 </body>
 </html>
