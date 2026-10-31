@@ -1,94 +1,55 @@
 import http from 'node:http';
 import {readFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
+import {BittiGame} from './bitti-game.js';
 
-const files={
-  '/':'bitti.html',
-  '/bitti':'bitti.html',
-  '/bitti/':'bitti.html',
-  '/bitti.css':'bitti.css',
-  '/bitti.js':'bitti.js'
-};
-const judgeRates=new Map();
-
-function sendJson(res,status,data){
-  res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});
-  res.end(JSON.stringify(data));
-}
-function normalizeLetter(v=''){return String(v).trim().toLocaleUpperCase('tr-TR').slice(0,1)}
-function cleanText(v,max=40){return String(v??'').trim().slice(0,max)}
-function takeOutputText(data){
-  for(const item of data?.output||[])for(const part of item?.content||[])if(part?.type==='output_text'&&part.text)return part.text;
-  return '';
-}
-async function readBody(req,limit=4096){
-  let body='';
-  for await(const chunk of req){body+=chunk;if(body.length>limit)throw new Error('İstek çok büyük.');}
-  return JSON.parse(body||'{}');
-}
-async function judgeAnswer({letter,category,answer,mode}){
-  letter=normalizeLetter(letter);category=cleanText(category,60);answer=cleanText(answer,60);mode=cleanText(mode,20);
-  if(!answer)return {valid:false,confidence:1,reason:'Cevap boş.',source:'rule'};
-  if(mode==='friends')return {valid:null,confidence:1,reason:'Arkadaş Modu cevaplarını grup bilir; AI hakem kullanılmaz.',source:'rule'};
-  if(letter&&!answer.toLocaleUpperCase('tr-TR').startsWith(letter))return {valid:false,confidence:1,reason:`Cevap ${letter} harfiyle başlamıyor.`,source:'rule'};
-  const apiKey=process.env.OPENAI_API_KEY;
-  if(!apiKey)return {unavailable:true,reason:'AI Hakem henüz sunucuda etkinleştirilmedi.'};
-  const model=process.env.OPENAI_JUDGE_MODEL||'gpt-6-luna';
-  const payload={
-    model,
-    reasoning:{effort:'none'},
-    instructions:'Sen BİTTİ! adlı Türkçe isim-şehir-hayvan tarzı parti oyununun tarafsız son hakemisin. Yalnızca verilen kategori, harf ve cevabı değerlendir. Yazım hatası küçük ve anlam açıksa toleranslı ol. Uydurma, kategori dışı veya bariz biçimde yanlış cevabı geçersiz say. Marka/özel isimlerde Türkiye’de veya dünyada gerçekten bilinen kullanımı kabul et. Kısa karar ver. SADECE şu JSON biçiminde cevap ver: {"valid":true,"confidence":0.0,"reason":"kısa Türkçe gerekçe"}. confidence 0 ile 1 arasında sayı olmalı.',
-    input:`Harf: ${letter}\nKategori: ${category}\nCevap: ${answer}`,
-    max_output_tokens:120
-  };
-  const r=await fetch('https://api.openai.com/v1/responses',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','Authorization':`Bearer ${apiKey}`},
-    body:JSON.stringify(payload),
-    signal:AbortSignal.timeout(12000)
-  });
-  const data=await r.json().catch(()=>({}));
-  if(!r.ok)throw new Error(data?.error?.message||'AI servisine ulaşılamadı.');
-  const raw=takeOutputText(data).replace(/^```(?:json)?\s*|\s*```$/g,'').trim();
-  let parsed;
-  try{parsed=JSON.parse(raw)}catch{throw new Error('AI kararı okunamadı.');}
-  return {
-    valid:parsed.valid===true,
-    confidence:Math.max(0,Math.min(1,Number(parsed.confidence)||0)),
-    reason:cleanText(parsed.reason,180)||'Karar verildi.',
-    source:'ai',model
-  };
+const game=new BittiGame();
+const streams=new Set();
+const files={'/':'bitti.html','/bitti':'bitti.html','/bitti/':'bitti.html','/bitti.css':'bitti.css','/bitti.js':'bitti.js'};
+const json=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
+const tokenFrom=req=>String(req.headers.authorization||'').replace(/^Bearer\s+/i,'').trim();
+function broadcast(code){for(const s of [...streams])if(s.code===code){try{s.res.write(`data: ${JSON.stringify(game.view(code,s.token))}\n\n`);}catch{try{s.res.end();}catch{}streams.delete(s);}}}
+function outputText(data){if(typeof data?.output_text==='string')return data.output_text;const out=[];for(const item of data?.output||[])for(const c of item?.content||[])if(typeof c?.text==='string')out.push(c.text);return out.join('\n');}
+async function aiJudge({letter,category,answer}){
+  const key=process.env.OPENAI_API_KEY;if(!key)return null;
+  const model=process.env.OPENAI_MODEL||'gpt-6-luna';
+  const prompt=`Türkçe İsim-Hayvan-Bitki tarzı bir kelime oyununda tarafsız hakemsin. Harf: ${letter}. Kategori: ${category}. Cevap: ${answer}. Cevabın gerçekten bu kategoriye ait olup olmadığını ve Türkçe kullanımda verilen harfle başlayıp başlamadığını değerlendir. Özel isimlerde yaygın Türkçe yazımı esas al. Uydurma veya kategori dışı cevapları reddet. Yalnızca şu JSON biçiminde yanıt ver: {"valid":true,"reason":"en fazla 12 kelimelik Türkçe gerekçe"}`;
+  const ctrl=new AbortController();const timeout=setTimeout(()=>ctrl.abort(),8000);
+  try{
+    const r=await fetch('https://api.openai.com/v1/responses',{method:'POST',headers:{'Authorization':`Bearer ${key}`,'Content-Type':'application/json'},body:JSON.stringify({model,input:prompt,max_output_tokens:100}),signal:ctrl.signal});
+    if(!r.ok)return null;const data=await r.json();const text=outputText(data).trim();const match=text.match(/\{[\s\S]*\}/);if(!match)return null;const parsed=JSON.parse(match[0]);if(typeof parsed.valid!=='boolean')return null;return {valid:parsed.valid,reason:String(parsed.reason||'').slice(0,120)};
+  }catch{return null;}finally{clearTimeout(timeout);}
 }
 
 export const server=http.createServer(async(req,res)=>{
   try{
     const u=new URL(req.url,'http://localhost');
-    res.setHeader('X-Content-Type-Options','nosniff');
-    res.setHeader('Referrer-Policy','no-referrer');
-    res.setHeader('Content-Security-Policy',"default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
-    if(u.pathname==='/health')return sendJson(res,200,{ok:true,game:'bitti',aiJudge:!!process.env.OPENAI_API_KEY});
-    if(req.method==='POST'&&u.pathname==='/api/judge'){
-      const ip=req.headers['x-forwarded-for']?.split(',')[0]?.trim()||req.socket.remoteAddress||'unknown';
-      let rate=judgeRates.get(ip);const now=Date.now();
-      if(!rate||now-rate.time>60000){rate={time:now,n:0};judgeRates.set(ip,rate)}
-      if(++rate.n>20)return sendJson(res,429,{error:'AI Hakem için çok hızlı istek gönderildi.'});
-      const body=await readBody(req,2048);
-      const result=await judgeAnswer(body);
-      return sendJson(res,200,result);
+    res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Referrer-Policy','no-referrer');res.setHeader('Content-Security-Policy',"default-src 'self'; style-src 'self'; script-src 'self'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
+    if(u.pathname==='/health')return json(res,200,{ok:true,game:'bitti-multiplayer'});
+    if(u.pathname==='/api/events'){
+      const code=u.searchParams.get('code'),token=u.searchParams.get('token');game.auth(code,token);
+      res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-cache','Connection':'keep-alive','X-Accel-Buffering':'no'});const s={code:String(code).toUpperCase(),token,res};streams.add(s);res.write(`data: ${JSON.stringify(game.view(code,token))}\n\n`);req.on('close',()=>streams.delete(s));return;
     }
-    const file=files[u.pathname];
-    if(!file)return sendJson(res,404,{error:'Bulunamadı'});
-    const type=file.endsWith('.js')?'text/javascript; charset=utf-8':file.endsWith('.css')?'text/css; charset=utf-8':'text/html; charset=utf-8';
-    res.writeHead(200,{'Content-Type':type,'Cache-Control':file.endsWith('.html')?'no-cache':'public, max-age=300'});
-    res.end(await readFile(new URL('./public/'+file,import.meta.url)));
-  }catch(e){
-    sendJson(res,500,{error:e.message||'Sunucu hatası'});
-  }
+    if(req.method==='POST'&&u.pathname.startsWith('/api/')){
+      let body='';for await(const chunk of req){body+=chunk;if(body.length>20000)return json(res,413,{error:'İstek çok büyük.'});}const d=JSON.parse(body||'{}');const op=u.pathname.slice(5);
+      if(op==='create'){const session=game.create(d.name,{mode:d.mode,rounds:d.rounds,duration:d.duration});return json(res,200,session);}
+      if(op==='join'){const session=game.join(d.code,d.name);broadcast(session.code);return json(res,200,session);}
+      const token=tokenFrom(req);if(!token)return json(res,401,{error:'Oturum bulunamadı.'});const code=d.code;
+      if(op==='state')return json(res,200,game.view(code,token));
+      if(op==='answers'){game.submitAnswers(code,token,d.answers);return json(res,200,{ok:true});}
+      if(op==='start')game.start(code,token);
+      else if(op==='bitti')game.bitti(code,token,d.answers);
+      else if(op==='next')game.nextRound(code,token);
+      else if(op==='reset')game.reset(code,token);
+      else if(op==='host-decision')game.hostDecision(code,token,!!d.valid);
+      else if(op==='vote'){
+        const out=game.vote(code,token,d.vote);broadcast(code);
+        if(out.needsAI){const result=await aiJudge(out.item);game.applyAI(code,out.item.id,result);broadcast(code);}return json(res,200,{ok:true});
+      } else return json(res,404,{error:'İşlem bulunamadı.'});
+      broadcast(code);return json(res,200,{ok:true});
+    }
+    const file=files[u.pathname];if(!file)return json(res,404,{error:'Bulunamadı'});const type=file.endsWith('.js')?'text/javascript; charset=utf-8':file.endsWith('.css')?'text/css; charset=utf-8':'text/html; charset=utf-8';res.writeHead(200,{'Content-Type':type,'Cache-Control':file.endsWith('.html')?'no-cache':'public, max-age=120'});res.end(await readFile(new URL('./public/'+file,import.meta.url)));
+  }catch(e){json(res,400,{error:e.message||'İşlem tamamlanamadı.'});}
 });
-
-setInterval(()=>{const now=Date.now();for(const [ip,r] of judgeRates)if(now-r.time>120000)judgeRates.delete(ip)},60000).unref();
-
-if(process.argv[1]===fileURLToPath(import.meta.url)){
-  const port=process.env.PORT||3000;
-  server.listen(port,'0.0.0.0',()=>console.log(`BİTTİ! hazır: http://localhost:${port}`));
-}
+setInterval(()=>{for(const code of game.tick())broadcast(code);for(const s of streams){try{s.res.write(': heartbeat\n\n');}catch{streams.delete(s);}}},500).unref();
+if(process.argv[1]===fileURLToPath(import.meta.url)){const port=process.env.PORT||3000;server.listen(port,'0.0.0.0',()=>console.log(`BİTTİ! multiplayer hazır: http://localhost:${port}`));}
