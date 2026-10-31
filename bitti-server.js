@@ -5,7 +5,7 @@ import {BittiGame} from './bitti-game.js';
 
 const game=new BittiGame();
 const streams=new Set();
-const files={'/':'bitti.html','/bitti':'bitti.html','/bitti/':'bitti.html','/bitti.css':'bitti.css','/bitti.js':'bitti.js'};
+const files={'/':'bitti.html','/bitti':'bitti.html','/bitti/':'bitti.html','/bitti.css':'bitti.css','/bitti-boot.js':'bitti-boot.js','/bitti.js':'bitti.js'};
 const json=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
 const tokenFrom=req=>String(req.headers.authorization||'').replace(/^Bearer\s+/i,'').trim();
 function broadcast(code){for(const s of [...streams])if(s.code===code){try{s.res.write(`data: ${JSON.stringify(game.view(code,s.token))}\n\n`);}catch{try{s.res.end();}catch{}streams.delete(s);}}}
@@ -33,7 +33,7 @@ export const server=http.createServer(async(req,res)=>{
     if(req.method==='POST'&&u.pathname.startsWith('/api/')){
       let body='';for await(const chunk of req){body+=chunk;if(body.length>20000)return json(res,413,{error:'İstek çok büyük.'});}const d=JSON.parse(body||'{}');const op=u.pathname.slice(5);
       if(op==='create'){const session=game.create(d.name,{mode:d.mode,rounds:d.rounds,duration:d.duration});return json(res,200,session);}
-      if(op==='join'){const session=game.join(d.code,d.name);broadcast(session.code);return json(res,200,session);}
+      if(op==='join'){const session=game.join(d.code,d.name,d.resumeToken||'');broadcast(session.code);return json(res,200,session);}
       const token=tokenFrom(req);if(!token)return json(res,401,{error:'Oturum bulunamadı.'});const code=d.code;
       if(op==='state')return json(res,200,game.view(code,token));
       if(op==='answers'){game.submitAnswers(code,token,d.answers);return json(res,200,{ok:true});}
