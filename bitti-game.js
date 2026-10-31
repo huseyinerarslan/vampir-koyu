@@ -19,11 +19,15 @@ export class BittiGame {
     this.rooms.set(code,r);
     return this.join(code,name);
   }
-  join(code,name){
+  join(code,name,resumeToken=''){
     const r=this.room(code);name=clean(name).slice(0,16);if(!name)throw Error('Bir isim yaz.');
-    if(r.phase!=='lobby')throw Error('Bu oyun başlamış. Yeni tur/oyun için kurucuyu bekle.');
+    const existing=r.players.find(p=>trLower(p.name)===trLower(name));
+    if(existing){
+      if(resumeToken&&existing.token===resumeToken){r.updated=Date.now();return {code:r.code,token:existing.token,rejoined:true};}
+      throw Error('Bu isim odada zaten kullanılıyor. Aynı cihazdan tekrar giriyorsan sayfayı yenile veya aynı oda koduyla yeniden katıl.');
+    }
+    if(r.phase!=='lobby')throw Error('Bu oyun başlamış. Yeni oyuncu eklenemez; yalnızca daha önceki oyuncular geri dönebilir.');
     if(r.players.length>=8)throw Error('Oda dolu.');
-    if(r.players.some(p=>trLower(p.name)===trLower(name)))throw Error('Bu isim odada zaten kullanılıyor.');
     const p={id:randomUUID(),token:randomUUID(),name,score:0};r.players.push(p);r.host??=p.id;r.updated=Date.now();
     return {code:r.code,token:p.token};
   }
